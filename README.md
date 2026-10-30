@@ -1,0 +1,120 @@
+# Fire Cursor 🔥
+
+A living ring of fire that follows your pointer. It's simulated in WebGL2, not animated, so the flames never repeat.
+
+It's one small file with no dependencies and no images. You add it with a single line.
+
+- **Real flame simulation.** Heat rises, swirls around the ring and cools unevenly, so flames lick, split and die naturally.
+- **Flame trails.** Moving the pointer leaves genuine trails of fire that cool behind it.
+- **Embers.** Glowing sparks drift off the ring, with more when you move fast.
+- **Edge flames.** Hover a button, link or card and its outline catches small flames near the cursor.
+- **Liquid glass, optional.** Glass elements reflect the flames and embers live as the fire moves.
+- **Light and dark.** It reads the page background and adapts automatically.
+- **Light on resources.** It runs at your display's refresh rate (120 fps on 120 Hz screens) and sleeps completely when the pointer leaves the page.
+
+Built by [Harshil Acharya](https://www.instagram.com/harshil_designer/).
+
+---
+
+## Quick start
+
+Add the script, then start it:
+
+```html
+<script src="fire-cursor.js"></script>
+<script>
+  FireCursor.init();
+</script>
+```
+
+That's it. Open `index.html` in this repo for a live demo with a theme toggle and sliders.
+
+> Serve the page over `http://` or `https://` (a local server is fine). Opening it straight from the file system also works, but some browsers limit WebGL on `file://` pages.
+
+### With a bundler
+
+```js
+const FireCursor = require('./fire-cursor.js');   // or import it with your bundler
+const fire = FireCursor.init({ radius: 14 });
+```
+
+---
+
+## Liquid glass
+
+Add `glass.css` and give any element the `fc-glass` class:
+
+```html
+<link rel="stylesheet" href="glass.css">
+
+<div class="card fc-glass">…</div>
+<button class="fc-glass">Send</button>
+```
+
+- **At rest**, `glass.css` adds a soft gloss and sheen. It only adds background layers, so the element keeps its own border, fill and focus ring.
+- **Near the fire**, `fire-cursor.js` draws the glass effects live: reflections of the flames, a thin glowing edge on the side nearest the fire, a warm glow, and reflections of the embers.
+- **Shadow**, if you want one: add `fc-glass--lifted` to cards for a soft drop shadow.
+
+Turn the glass effect off with `glassSelector: ''`, or adjust it with `glassStrength`.
+
+---
+
+## Options
+
+```js
+FireCursor.init({
+  radius: 13,               // size of the fire ring, in CSS px
+  embers: 160,              // max embers on screen (0 = none)
+  edgeSelector: 'a, button, [role="button"], input, textarea, select, [data-fire-edge], .fc-glass',
+                            // hovered elements whose outline catches flames
+  growSelector: 'a, button, [role="button"], [data-fire-grow]',
+                            // the ring grows slightly over these
+  glassSelector: '.fc-glass', // elements that reflect the fire ('' = off)
+  glassStrength: 0.25,      // 0 – 1, how strongly glass picks up the firelight
+  hideCursor: true,         // hide the system cursor while the fire runs
+  theme: 'auto',            // 'auto' | 'light' | 'dark'
+  zIndex: 2147483000,
+  respectReducedMotion: true  // keep the normal cursor for people who prefer reduced motion
+});
+```
+
+**Tip:** to give any element edge flames without changing your selectors, add `data-fire-edge` to it.
+
+## API
+
+`FireCursor.init()` returns a controller:
+
+```js
+const fire = FireCursor.init();
+
+fire.running;               // false if the effect couldn't start (see below)
+fire.setTheme('dark');      // 'light' | 'dark' | 'auto'
+fire.setGlassStrength(0.5);
+fire.destroy();             // removes everything and restores the normal cursor
+```
+
+---
+
+## When it doesn't run
+
+The effect turns itself off, and your normal cursor stays, in these cases:
+
+- **Touch-only devices.** There's no pointer to follow.
+- **Reduced motion.** The user has turned on "reduce motion" in their system settings (you can change this with `respectReducedMotion`).
+- **No WebGL2.** The browser doesn't support WebGL2 with float textures. All current versions of Chrome, Edge, Firefox and Safari do.
+
+## How it works
+
+1. **The heat field.** A heat texture covers the viewport, slightly lower resolution than the screen. Every frame, the heat:
+   - moves with rising air, a swirl around the ring and the pointer's wake;
+   - cools at a rate that varies across the screen and over time;
+   - is fed by a ragged, breathing ring of heat around the pointer, with two brighter arcs that slowly circle.
+2. **Display.** A second pass turns heat into fire colours, from deep red tips through orange and yellow to a near-white core. It adds fine rising streaks and a faint heat shimmer.
+3. **Embers.** Embers are simple particles drawn as glowing points.
+4. **Glass.** For glass elements near the pointer, the display pass also draws the fire's reflections. The fire is the only light source, so the reflections follow it frame by frame.
+
+All the shader code is in `fire-cursor.js` and commented, so it's a good place to start experimenting with colours, flame height or the ring shape.
+
+## License
+
+[MIT](LICENSE). Use it freely in personal and commercial projects. A credit or a tag is always appreciated ✨

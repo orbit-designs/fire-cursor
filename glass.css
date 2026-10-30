@@ -1,0 +1,32 @@
+/*!
+ * Fire Cursor — optional liquid-glass look for .fc-glass elements.
+ * The fire's reflections are drawn by fire-cursor.js; this file only adds the resting gloss and sheen.
+ * Everything is a background layer, so each element keeps its own border, fill and focus ring.
+ * (c) 2026 Harshil Acharya · MIT License
+ */
+:root {
+  --fc-glass:
+    linear-gradient(118deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.025) 22%, rgba(255,255,255,0) 34%,
+                    rgba(255,255,255,0) 70%, rgba(255,255,255,.045) 86%, rgba(255,255,255,0) 100%),
+    radial-gradient(120% 60% at 50% -10%, rgba(255,255,255,.125), rgba(255,255,255,0) 60%),
+    linear-gradient(160deg, rgba(255,255,255,.155) 0%, rgba(244,246,250,.07) 42%, rgba(236,239,245,.1) 100%);
+  --fc-glass-shadow: 0 6px 14px -8px rgba(0,0,0,.07), 0 3px 8px -2px rgba(0,0,0,.02);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fc-glass:
+      linear-gradient(118deg, rgba(255,255,255,.013) 0%, rgba(255,255,255,0) 30%, rgba(255,255,255,0) 75%,
+                      rgba(255,255,255,.006) 86%, rgba(255,255,255,0) 100%),
+      linear-gradient(160deg, rgba(255,255,255,.0275) 0%, rgba(255,255,255,.0075) 45%, rgba(255,255,255,.015) 100%);
+    --fc-glass-shadow: 0 6px 14px -8px rgba(0,0,0,.225);
+  }
+}
+:root[data-theme="dark"] {
+  --fc-glass:
+    linear-gradient(118deg, rgba(255,255,255,.013) 0%, rgba(255,255,255,0) 30%, rgba(255,255,255,0) 75%,
+                    rgba(255,255,255,.006) 86%, rgba(255,255,255,0) 100%),
+    linear-gradient(160deg, rgba(255,255,255,.0275) 0%, rgba(255,255,255,.0075) 45%, rgba(255,255,255,.015) 100%);
+  --fc-glass-shadow: 0 6px 14px -8px rgba(0,0,0,.225);
+}
+.fc-glass { background-image: var(--fc-glass); background-origin: border-box; }
+.fc-glass.fc-glass--lifted { box-shadow: var(--fc-glass-shadow); }
