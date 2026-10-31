@@ -17,6 +17,7 @@
     hideCursor: true,           // hide the system cursor while the fire is running
     theme: 'auto',              // 'auto' (reads the page background), 'light' or 'dark'
     zIndex: 2147483000,
+    touch: true,                // on phones and tablets the fire follows your finger while you touch and drag
     respectReducedMotion: true  // users who prefer reduced motion keep their normal cursor
   };
 
@@ -24,7 +25,8 @@
     const O = Object.assign({}, DEFAULTS, options || {});
     const noop = { destroy() {}, setTheme() {}, running: false };
     if (typeof window === 'undefined' || !window.matchMedia) return noop;
-    if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return noop;            // touch devices: nothing to follow
+    const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (!fine && !O.touch) return noop;                                                    // touch devices: only if touch is on
     if (O.respectReducedMotion && matchMedia('(prefers-reduced-motion: reduce)').matches) return noop;
 
     const root = document.documentElement;
@@ -32,7 +34,7 @@
     canvas.setAttribute('aria-hidden', 'true');
     canvas.style.cssText = `position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:${O.zIndex}`;
     const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false });
-    if (!gl || !gl.getExtension('EXT_color_buffer_float')) return noop;                    // no WebGL2: leave the normal cursor alone
+    if (!gl || !(gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float'))) return noop;   // no WebGL2: leave the normal cursor alone
 
     const VS = `#version 300 es
 precision highp float; out vec2 vUv;
@@ -199,7 +201,7 @@ void main(){ float d = length(gl_PointCoord - .5); float a = (1. - smoothstep(.1
 
     document.body.appendChild(canvas);
     let style = null;
-    if (O.hideCursor) {
+    if (O.hideCursor && fine) {
       style = document.createElement('style');
       style.textContent = 'html.fire-cursor-on,html.fire-cursor-on *,html.fire-cursor-on *::before,html.fire-cursor-on *::after{cursor:none!important}';
       document.head.appendChild(style); root.classList.add('fire-cursor-on');
@@ -219,7 +221,7 @@ void main(){ float d = length(gl_PointCoord - .5); float a = (1. - smoothstep(.1
       const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
       gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); return { t, f }; }
     function resize() {
-      dpr = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight;
+      dpr = Math.min(devicePixelRatio || 1, fine ? 2 : 1.5); W = innerWidth; H = innerHeight;   // phones: lighter
       canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
       const nw = Math.ceil(W / 1.5), nh = Math.ceil(H / 1.5);
       if (nw !== hw || nh !== hh) { for (const x of heat) { gl.deleteTexture(x.t); gl.deleteFramebuffer(x.f); } hw = nw; hh = nh; heat = [target(hw, hh), target(hw, hh)]; }
@@ -250,6 +252,7 @@ void main(){ float d = length(gl_PointCoord - .5); float a = (1. - smoothstep(.1
 
     const onMove = e => {
       if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+      driving = false;
       if (C.x < -900) { C.lx = e.clientX; C.ly = e.clientY; }
       C.x = e.clientX; C.y = e.clientY; C.onT = 1;
       const tg = e.target && e.target.closest ? e.target : null;
@@ -258,6 +261,22 @@ void main(){ float d = length(gl_PointCoord - .5); float a = (1. - smoothstep(.1
       wake();
     };
     const onLeave = () => { C.onT = 0; host = null; };
+    // touch: the fire follows a finger while it's on the screen (listeners are passive, so scrolling still works)
+    const point = (x, y, tg) => {
+      if (C.x < -900 || C.onT === 0) { C.lx = x; C.ly = y; }
+      C.x = x; C.y = y; C.onT = 1;
+      tg = tg && tg.closest ? tg : null;
+      C.bigT = tg && O.growSelector && tg.closest(O.growSelector) ? 1 : 0;
+      host = tg && O.edgeSelector ? tg.closest(O.edgeSelector) : null;
+      wake();
+    };
+    const onTouch = e => { const p = e.touches && e.touches[0]; if (!p) return; driving = false; point(p.clientX, p.clientY, document.elementFromPoint(p.clientX, p.clientY)); };
+    const onTouchEnd = e => { if (!e.touches || !e.touches.length) onLeave(); };
+    let driving = false;
+    if (O.touch) {
+      addEventListener('touchstart', onTouch, { passive: true }); addEventListener('touchmove', onTouch, { passive: true });
+      addEventListener('touchend', onTouchEnd, { passive: true }); addEventListener('touchcancel', onTouchEnd, { passive: true });
+    }
     const onLost = e => { e.preventDefault(); destroy(); };
     addEventListener('pointermove', onMove, { passive: true });
     document.addEventListener('pointerleave', onLeave, { passive: true });
@@ -359,6 +378,8 @@ void main(){ float d = length(gl_PointCoord - .5); float a = (1. - smoothstep(.1
       if (!alive) return; alive = false;
       if (raf) cancelAnimationFrame(raf);
       removeEventListener('pointermove', onMove); document.removeEventListener('pointerleave', onLeave);
+      removeEventListener('touchstart', onTouch); removeEventListener('touchmove', onTouch);
+      removeEventListener('touchend', onTouchEnd); removeEventListener('touchcancel', onTouchEnd);
       removeEventListener('blur', onLeave); removeEventListener('resize', resize);
       mo.disconnect(); mq.removeEventListener && mq.removeEventListener('change', onScheme);
       root.classList.remove('fire-cursor-on'); if (style) style.remove();
@@ -368,7 +389,10 @@ void main(){ float d = length(gl_PointCoord - .5); float a = (1. - smoothstep(.1
       running: true,
       destroy,
       setTheme(th) { O.theme = th || 'auto'; readTheme(); },
-      setGlassStrength(k) { O.glassStrength = +k || 0; wake(); }
+      setGlassStrength(k) { O.glassStrength = +k || 0; wake(); },
+      // steer the fire yourself (for intros, autoplay demos on touch screens, scroll-driven paths)
+      drive(x, y) { driving = true; point(x, y, document.elementFromPoint(x, y)); },
+      release() { driving = false; onLeave(); }
     };
   }
 

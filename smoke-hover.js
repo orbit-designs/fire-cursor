@@ -16,7 +16,7 @@
   'use strict';
 
   const DEFAULTS = {
-    selector: 'button, a, input, textarea, select, [role="button"], h1, h2, h3, [data-smoke]',  // elements that smoke on hover
+    selector: 'button, a, input, textarea, select, [role="button"], h1, h2, h3, [data-smoke], [data-smoke-text]',  // elements that smoke on hover
     textSelector: 'h1, h2, h3, [data-smoke-text]',   // titles: the letters themselves bend and dissolve
     float: true,                 // hovered elements lean a few px toward the cursor (magnetic float)
     floatSelector: 'button, a, input, textarea, select, [role="button"], h1, h2, h3, p, li, img, [data-smoke], [data-float]',
@@ -26,6 +26,7 @@
     lightSmoke: [.07, .07, .08], // smoke colour on light pages (RGB 0–1)
     darkSmoke: [.93, .93, .95],  // smoke colour on dark pages
     zIndex: 2147482000,          // just under Fire Cursor
+    touch: true,                 // on phones and tablets, dragging a finger over an element smokes it
     respectReducedMotion: true
   };
 
@@ -33,7 +34,8 @@
     const O = Object.assign({}, DEFAULTS, options || {});
     const noop = { destroy() {}, setTheme() {}, running: false };
     if (typeof window === 'undefined' || !window.matchMedia) return noop;
-    if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return noop;
+    const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (!fine && !O.touch) return noop;
     if (O.respectReducedMotion && matchMedia('(prefers-reduced-motion: reduce)').matches) return noop;
     const root = document.documentElement;
     const SEL = O.selector, TEXTY = O.textSelector || '\u0000';
@@ -231,7 +233,7 @@ void main(){
   function makeEngine() {
     const canvas = document.createElement('canvas'); canvas.style.cssText = `position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:${O.zIndex}`; canvas.setAttribute('aria-hidden', 'true');
     const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, powerPreference: 'high-performance' });
-    if (!gl || !gl.getExtension('EXT_color_buffer_float')) return null;
+    if (!gl || !(gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float'))) return null;
     const sh = (t, s) => { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x)); return x; };
     const vs = sh(gl.VERTEX_SHADER, VS), P = {};
     for (const k in FS) {
@@ -439,22 +441,31 @@ void main(){
 
   /* ------------------------------------------------------------------ input */
   const onFloat = e => { if (!O.float || e.pointerType !== 'mouse') return; const n = e.target; floatTo(n && n.closest ? n.closest(O.floatSelector) : null, e.clientX, e.clientY); };
-  const onMove = e => {
-    if (e.pointerType !== 'mouse') return;
-    let el = e.target && e.target.closest ? e.target.closest(SEL) : null;
+  // one place that handles a pointer position, whether it came from a mouse, a finger, or drive()
+  function track(x, y, tg, fresh) {
+    let el = tg && tg.closest ? tg.closest(SEL) : null;
     if (!el) for (const [dx, dy] of [[18, 0], [-18, 0], [0, 18], [0, -18]]) {   // near an edge counts: the smoke can lick it from outside
-      const n = document.elementFromPoint(e.clientX + dx, e.clientY + dy); el = n && n.closest ? n.closest(SEL) : null; if (el) break; }
-    if (P.x < -9000 || el !== host) { P.px = e.clientX; P.py = e.clientY; }   // never draw a stroke across the gap between elements
-    P.x = e.clientX; P.y = e.clientY;
+      const n = document.elementFromPoint(x + dx, y + dy); el = n && n.closest ? n.closest(SEL) : null; if (el) break; }
+    if (fresh || P.x < -9000 || el !== host) { P.px = x; P.py = y; }   // never draw a stroke across the gap between elements
+    P.x = x; P.y = y;
     host = el;
     if (!el && !E) return;                       // nothing hovered yet: don't even start the engine
     if (!ensure()) return;
     idleSince = performance.now(); wake();
-  };
+  }
+  let driving = false, touching = false;
+  const onMove = e => { if (e.pointerType !== 'mouse') return; driving = false; track(e.clientX, e.clientY, e.target); };
+  const onTouch = e => { const p = e.touches && e.touches[0]; if (!p) return; driving = false;
+    const fresh = e.type === 'touchstart'; touching = true; track(p.clientX, p.clientY, document.elementFromPoint(p.clientX, p.clientY), fresh); };
+  const onTouchEnd = e => { if (!e.touches || !e.touches.length) { touching = false; host = null; } };
+  if (O.touch) {
+    addEventListener('touchstart', onTouch, { passive: true }); addEventListener('touchmove', onTouch, { passive: true });
+    addEventListener('touchend', onTouchEnd, { passive: true }); addEventListener('touchcancel', onTouchEnd, { passive: true });
+  }
   const onLeave = () => { host = null; floatTo(null); };
   const onBlur = () => { host = null; };
   const onResize = () => { if (E) E.resize(); };
-  const onScroll = () => { if (E && raf) E.reset(); };
+  const onScroll = () => { if (E && raf && !touching && !driving) E.reset(); };   // smoke lives in screen space: clear it when the page scrolls under it
   addEventListener('pointermove', onFloat, { passive: true });
   addEventListener('pointermove', onMove, { passive: true });
   document.addEventListener('pointerleave', onLeave, { passive: true });
@@ -490,12 +501,17 @@ void main(){
     removeEventListener('pointermove', onFloat); removeEventListener('pointermove', onMove);
     document.removeEventListener('pointerleave', onLeave); removeEventListener('blur', onBlur);
     removeEventListener('resize', onResize); removeEventListener('scroll', onScroll);
+    removeEventListener('touchstart', onTouch); removeEventListener('touchmove', onTouch);
+    removeEventListener('touchend', onTouchEnd); removeEventListener('touchcancel', onTouchEnd);
     mo.disconnect(); mq.removeEventListener && mq.removeEventListener('change', onScheme);
     for (const [el] of floats) el.style.translate = ''; floats.clear();
     if (E) { E.canvas.remove(); const lose = E.gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext(); }
     E = false;
   }
-  return { running: true, destroy, setTheme(th) { O.theme = th || 'auto'; readTheme(); } };
+  return { running: true, destroy, setTheme(th) { O.theme = th || 'auto'; readTheme(); },
+    // steer the smoke yourself (autoplay demos, touch screens): it smokes whatever element is at (x, y)
+    drive(x, y) { const fresh = !driving; driving = true; track(x, y, document.elementFromPoint(x, y), fresh); },
+    release() { driving = false; host = null; } };
   }
 
   const api = { init, defaults: DEFAULTS, version: '1.0.0' };

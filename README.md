@@ -97,7 +97,7 @@ FireCursor.init({
 
 ```js
 SmokeHover.init({
-  selector: 'button, a, input, textarea, select, [role="button"], h1, h2, h3, [data-smoke]',
+  selector: 'button, a, input, textarea, select, [role="button"], h1, h2, h3, [data-smoke], [data-smoke-text]',
                             // elements that turn to smoke as the cursor sweeps over them
   textSelector: 'h1, h2, h3, [data-smoke-text]',
                             // titles: the letters themselves bend and dissolve
@@ -130,11 +130,30 @@ smoke.destroy();
 
 ---
 
+## Phones and tablets
+
+On touch screens there's no cursor, so the fire follows your finger while it's on the screen, and dragging across an element smokes it. Scrolling still works normally. Turn this off with `touch: false` on either effect.
+
+To make sure phone visitors still see something, you can steer both effects yourself with `drive(x, y)` and hand control back with `release()`. The demo page uses this to write the fire across the headline whenever nobody is touching the screen:
+
+```js
+const fire = FireCursor.init(), smoke = SmokeHover.init();
+let t = 0;
+(function autoplay() {
+  t += 0.016;
+  const r = document.querySelector('h1').getBoundingClientRect();
+  const x = r.left + r.width * (0.5 + 0.44 * Math.sin(t * 0.62));
+  const y = r.top + r.height * (0.5 + 0.36 * Math.sin(t * 1.24));
+  fire.drive(x, y); smoke.drive(x, y);
+  requestAnimationFrame(autoplay);
+})();
+// a real mouse or finger always takes over from drive()
+```
+
 ## When it doesn't run
 
 The effect turns itself off, and your normal cursor stays, in these cases:
 
-- **Touch-only devices.** There's no pointer to follow.
 - **Reduced motion.** The user has turned on "reduce motion" in their system settings (you can change this with `respectReducedMotion`).
 - **No WebGL2.** The browser doesn't support WebGL2 with float textures. All current versions of Chrome, Edge, Firefox and Safari do.
 
