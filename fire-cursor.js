@@ -1,7 +1,7 @@
 /*!
  * Fire Cursor — a living fire ring that follows the pointer, simulated in WebGL2.
  * Flames, trails, embers, edge flames on hovered elements, and optional liquid-glass reflections.
- * https://github.com/orbit-designs/fire-cursor
+ * https://github.com/harshil-acharya/fire-cursor
  * (c) 2026 Harshil Acharya · MIT License
  */
 (function (global) {

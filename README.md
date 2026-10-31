@@ -2,13 +2,15 @@
 
 A living ring of fire that follows your pointer. It's simulated in WebGL2, not animated, so the flames never repeat.
 
-It's one small file with no dependencies and no images. You add it with a single line.
+It comes as two small files with no dependencies and no images: the fire cursor, and an optional smoke effect. You add each one with a single line.
 
 - **Real flame simulation.** Heat rises, swirls around the ring and cools unevenly, so flames lick, split and die naturally.
 - **Flame trails.** Moving the pointer leaves genuine trails of fire that cool behind it.
 - **Embers.** Glowing sparks drift off the ring, with more when you move fast.
 - **Edge flames.** Hover a button, link or card and its outline catches small flames near the cursor.
 - **Liquid glass, optional.** Glass elements reflect the flames and embers live as the fire moves.
+- **Smoke hover, optional.** Sweep across a button, card or title and it dissolves into real flowing smoke along your path, then heals. Titles even lose their letters to the smoke.
+- **Magnetic float.** With the smoke file, hovered elements lean a few pixels toward the cursor.
 - **Light and dark.** It reads the page background and adapts automatically.
 - **Light on resources.** It runs at your display's refresh rate (120 fps on 120 Hz screens) and sleeps completely when the pointer leaves the page.
 
@@ -28,6 +30,17 @@ Add the script, then start it:
 ```
 
 That's it. Open `index.html` in this repo for a live demo with a theme toggle and sliders.
+
+### Add the smoke
+
+```html
+<script src="smoke-hover.js"></script>
+<script>
+  SmokeHover.init();
+</script>
+```
+
+Fire and smoke are independent, so you can use either one on its own or both together.
 
 > Serve the page over `http://` or `https://` (a local server is fine). Opening it straight from the file system also works, but some browsers limit WebGL on `file://` pages.
 
@@ -59,7 +72,7 @@ Turn the glass effect off with `glassSelector: ''`, or adjust it with `glassStre
 
 ---
 
-## Options
+## Fire options
 
 ```js
 FireCursor.init({
@@ -80,6 +93,24 @@ FireCursor.init({
 
 **Tip:** to give any element edge flames without changing your selectors, add `data-fire-edge` to it.
 
+## Smoke options
+
+```js
+SmokeHover.init({
+  selector: 'button, a, input, textarea, select, [role="button"], h1, h2, h3, [data-smoke]',
+                            // elements that turn to smoke as the cursor sweeps over them
+  textSelector: 'h1, h2, h3, [data-smoke-text]',
+                            // titles: the letters themselves bend and dissolve
+  float: true,              // hovered elements lean a few px toward the cursor
+  density: 1,               // how much smoke is released (0.3 – 1.5)
+  linger: 1,                // how long the smoke lasts (0.5 – 2)
+  theme: 'auto',            // 'auto' | 'light' | 'dark'
+  lightSmoke: [.07, .07, .08], darkSmoke: [.93, .93, .95]   // smoke colours (RGB, 0–1)
+});
+```
+
+**Tip:** add `data-smoke` to any card or panel you want to smoke. The empty background never smokes.
+
 ## API
 
 `FireCursor.init()` returns a controller:
@@ -91,6 +122,10 @@ fire.running;               // false if the effect couldn't start (see below)
 fire.setTheme('dark');      // 'light' | 'dark' | 'auto'
 fire.setGlassStrength(0.5);
 fire.destroy();             // removes everything and restores the normal cursor
+
+const smoke = SmokeHover.init();
+smoke.setTheme('light');
+smoke.destroy();
 ```
 
 ---
@@ -112,8 +147,9 @@ The effect turns itself off, and your normal cursor stays, in these cases:
 2. **Display.** A second pass turns heat into fire colours, from deep red tips through orange and yellow to a near-white core. It adds fine rising streaks and a faint heat shimmer.
 3. **Embers.** Embers are simple particles drawn as glowing points.
 4. **Glass.** For glass elements near the pointer, the display pass also draws the fire's reflections. The fire is the only light source, so the reflections follow it frame by frame.
+5. **Smoke.** A ribbon of smoke strands, generated in code, is laid along the cursor's path whenever it moves over an element. A GPU fluid solver ("stable fluids") then makes it curl, swirl and rise. The element underneath gives way along the smoke's own contours, its outline or letters bend with the flow, and everything heals a moment after you stop.
 
-All the shader code is in `fire-cursor.js` and commented, so it's a good place to start experimenting with colours, flame height or the ring shape.
+All the shader code is in `fire-cursor.js` and `smoke-hover.js`, and it's commented, so it's a good place to start experimenting with colours, flame height or the ring shape.
 
 ## License
 

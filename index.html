@@ -32,23 +32,24 @@
 <body>
 <main>
   <h1>Fire Cursor</h1>
-  <p class="lead">A living ring of fire that follows your pointer — simulated in WebGL2, with flame trails, embers, edge flames and liquid-glass reflections. Move around and hover the cards and buttons.</p>
+  <p class="lead">A living ring of fire that follows your pointer — simulated in WebGL2, with flame trails, embers, edge flames, liquid-glass reflections and smoke that dissolves whatever you hover. Move around and sweep across the title, cards and buttons.</p>
 
   <div class="bar">
     <button class="primary fc-glass" id="theme">Toggle dark mode</button>
     <button class="fc-glass" id="glass">Glass: on</button>
-    <a class="btn fc-glass" href="https://github.com/orbit-designs/fire-cursor">View on GitHub</a>
+    <button class="fc-glass" id="smoke">Smoke: on</button>
+    <a class="btn fc-glass" href="https://github.com/harshil-acharya/fire-cursor">View on GitHub</a>
     <label class="ctl">Ring size <input id="radius" type="range" min="8" max="24" value="13"></label>
     <label class="ctl">Glass strength <input id="strength" type="range" min="0" max="100" value="25"></label>
   </div>
 
   <div class="grid">
-    <div class="card fc-glass fc-glass--lifted" data-fire-edge><h3>Flame trails</h3><p>The heat is carried and cools behind the pointer, so moving leaves real trails.</p></div>
-    <div class="card fc-glass fc-glass--lifted" data-fire-edge><h3>Edge flames</h3><p>Hover an element and its outline catches small flames near the cursor.</p></div>
-    <div class="card fc-glass fc-glass--lifted" data-fire-edge><h3>Liquid glass</h3><p>Glass elements reflect the flames and embers, live, as the fire moves.</p></div>
+    <div class="card fc-glass fc-glass--lifted" data-fire-edge data-smoke><h3>Flame trails</h3><p>The heat is carried and cools behind the pointer, so moving leaves real trails.</p></div>
+    <div class="card fc-glass fc-glass--lifted" data-fire-edge data-smoke><h3>Edge flames</h3><p>Hover an element and its outline catches small flames near the cursor.</p></div>
+    <div class="card fc-glass fc-glass--lifted" data-fire-edge data-smoke><h3>Liquid glass</h3><p>Glass elements reflect the flames and embers, live, as the fire moves.</p></div>
   </div>
 
-  <div class="prompt fc-glass" data-fire-edge>
+  <div class="prompt fc-glass" data-fire-edge data-smoke>
     <textarea placeholder="Type here — text fields work as normal"></textarea>
     <div class="row"><button class="fc-glass">Cancel</button><button class="primary fc-glass">Send</button></div>
   </div>
@@ -57,9 +58,13 @@
 </main>
 
 <script src="fire-cursor.js"></script>
+<script src="smoke-hover.js"></script>
 <script>
   let opts = { radius: 13, glassStrength: .25 };
   let fire = FireCursor.init(opts);
+  let smoke = SmokeHover.init();
+  const sb = document.getElementById('smoke');
+  sb.onclick = () => { if (smoke.running) { smoke.destroy(); smoke = { running: false }; sb.textContent = 'Smoke: off'; } else { smoke = SmokeHover.init(); sb.textContent = 'Smoke: on'; } };
   const restart = () => { fire.destroy(); fire = FireCursor.init(opts); };
   document.getElementById('theme').onclick = () => {
     const r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark';
