@@ -442,10 +442,20 @@ void main(){
   /* ------------------------------------------------------------------ input */
   const onFloat = e => { if (!O.float || e.pointerType !== 'mouse') return; const n = e.target; floatTo(n && n.closest ? n.closest(O.floatSelector) : null, e.clientX, e.clientY); };
   // one place that handles a pointer position, whether it came from a mouse, a finger, or drive()
+  // text only counts over its words, not the empty part of its line box; if the pointer is beside the words, look further out
+  function hostAt(n, x, y) {
+    let el = n && n.closest ? n.closest(SEL) : null;
+    while (el && el.matches(TEXTY)) {
+      const r = rectOf(el);
+      if (x > r.left - 10 && x < r.right + 10 && y > r.top - 8 && y < r.bottom + 8) break;
+      el = el.parentElement ? el.parentElement.closest(SEL) : null;
+    }
+    return el;
+  }
   function track(x, y, tg, fresh) {
-    let el = tg && tg.closest ? tg.closest(SEL) : null;
+    let el = hostAt(tg, x, y);
     if (!el) for (const [dx, dy] of [[18, 0], [-18, 0], [0, 18], [0, -18]]) {   // near an edge counts: the smoke can lick it from outside
-      const n = document.elementFromPoint(x + dx, y + dy); el = n && n.closest ? n.closest(SEL) : null; if (el) break; }
+      const n = document.elementFromPoint(x + dx, y + dy); el = hostAt(n, x + dx, y + dy); if (el) break; }
     if (fresh || P.x < -9000 || el !== host) { P.px = x; P.py = y; }   // never draw a stroke across the gap between elements
     P.x = x; P.y = y;
     host = el;

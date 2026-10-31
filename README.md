@@ -111,6 +111,15 @@ SmokeHover.init({
 
 **Tip:** add `data-smoke` to any card or panel you want to smoke. The empty background never smokes.
 
+**Everything at once.** To make every element on your page react, text included, pass wider selectors. Text dissolves letter by letter, but only when the cursor is over the words themselves. Boxes like buttons and cards peel their outline off into smoke and catch flames on their edges:
+
+```js
+const TEXT  = 'h1, h2, h3, p, li, label, a, code';
+const BOXES = 'button, input, textarea, select, img, pre, [data-smoke], .fc-glass';
+FireCursor.init({ edgeSelector: BOXES });
+SmokeHover.init({ selector: TEXT + ', ' + BOXES, textSelector: TEXT, floatSelector: TEXT + ', ' + BOXES });
+```
+
 ## API
 
 `FireCursor.init()` returns a controller:

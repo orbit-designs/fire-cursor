@@ -534,10 +534,20 @@ SmokeHover.init();</pre>
 
   /* ---------- the effects, driven by the playground */
   const opts = { radius: 13, embers: 160, glassStrength: .35, density: 1, linger: 1, fire: true, smoke: true, float: true };
+  /* every element takes part in the hover effect, each in the way that suits its shape:
+     · TEXT  — words themselves bend and dissolve into smoke (headings, paragraphs, labels, links, numbers)
+     · BOXES — the outline peels off into smoke and catches small flames (buttons, cards, fields, panels, figures)
+     · both lean a few pixels toward the cursor (magnetic float); the empty background never reacts */
+  const TEXT = ['h1', 'h2', 'h3', 'p', 'li', 'label', 'code', '.kicker > span', '.facts b', '.facts span', '.hud .k', '.hud .v',
+    '.meta .num > span', '.track .ends > span', '.track .read .v', '.track .read .mono', '.stage .tag', '.plate-cta', '.tile b', '.tile span',
+    '.pane b', '.pane span', '.behind', '.code .top > .mono', '.foot > .mono', '.mark', '.nav a', '.foot a', '[data-smoke-text]'].join(', ');
+  const BOXES = ['.btn', '.chip', '.toggle', '.field', '.stage', '.pane', '.tile', '.step', '.console', 'pre', 'input', 'button', '.plate svg', 'img',
+    '[data-smoke]', '[data-fire-edge]', '.fc-glass'].join(', ');
+  const EDGES = BOXES + ', .nav a, .foot a';
   let fire = { running: false, destroy() {} }, smoke = { running: false, destroy() {} };
   const theme = () => root.dataset.theme;
-  const startFire = () => { fire.destroy(); fire = opts.fire ? FireCursor.init({ radius: opts.radius, embers: opts.embers, glassStrength: opts.glassStrength, theme: theme() }) : { running: false, destroy() {} }; };
-  const startSmoke = () => { smoke.destroy(); smoke = opts.smoke ? SmokeHover.init({ density: opts.density, linger: opts.linger, float: opts.float, theme: theme() }) : { running: false, destroy() {} }; };
+  const startFire = () => { fire.destroy(); fire = opts.fire ? FireCursor.init({ radius: opts.radius, embers: opts.embers, glassStrength: opts.glassStrength, theme: theme(), edgeSelector: EDGES, growSelector: BOXES + ', ' + TEXT }) : { running: false, destroy() {} }; };
+  const startSmoke = () => { smoke.destroy(); smoke = opts.smoke ? SmokeHover.init({ density: opts.density, linger: opts.linger, float: opts.float, theme: theme(), selector: TEXT + ', ' + BOXES, textSelector: TEXT, floatSelector: TEXT + ', ' + BOXES }) : { running: false, destroy() {} }; };
   if (saved === 'light' || saved === 'dark') root.dataset.theme = saved;
   startFire(); startSmoke(); setTheme(theme());
   if (!fire.running) document.body.classList.add('no-fx');
