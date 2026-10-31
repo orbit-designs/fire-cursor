@@ -1,6 +1,6 @@
 /*!
  * Smoke Hover — UI elements dissolve into flowing smoke where the cursor passes, then heal.
- * A companion to Fire Cursor: https://github.com/harshil-acharya/fire-cursor
+ * A companion to Fire Cursor: https://github.com/orbit-designs/fire-cursor
  * (c) 2026 Harshil Acharya · MIT License
  *
  * How it works
